@@ -12,7 +12,6 @@ from telegram.ext import (
     filters
 )
 
-
 # === Логирование ===
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -234,7 +233,6 @@ async def choose_wrap_color(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    # Удаляем сообщение с выбором обёртки сразу после нажатия
     try:
         await query.message.delete()
     except Exception as e:
@@ -251,15 +249,12 @@ async def choose_wrap_color(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if key not in WRAP_COLORS:
             return CHOOSING_WRAP_COLOR
         context.user_data["wrap_color"] = WRAP_COLORS[key]
-
-        # ✅ ВЕРТИКАЛЬНАЯ КЛАВИАТУРА для наполнения
         keyboard = [
             [InlineKeyboardButton(name, callback_data=f"fillb_{k}")]
             for k, name in FILLINGS.items()
         ]
         keyboard.append(build_back_to_bouquets_button())
         reply_markup = InlineKeyboardMarkup(keyboard)
-
         await update.effective_chat.send_message("🌿 Выберите наполнение букета:", reply_markup=reply_markup)
         return CHOOSING_FILLING
 
@@ -285,13 +280,11 @@ async def choose_filling(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if key not in FILLINGS:
             return CHOOSING_FILLING
         context.user_data["filling"] = FILLINGS[key]
-
-        # Формируем клавиатуру — вертикально
         keyboard = [
             [InlineKeyboardButton(name, callback_data=f"ribbonb_{k}")]
             for k, name in RIBBON_COLORS.items()
         ]
-        keyboard.append(build_back_to_bouquets_button())  # добавляем "Назад" вниз
+        keyboard.append(build_back_to_bouquets_button())
 
         photo_path = "Photos/ribbon_overview.png"
         if os.path.exists(photo_path):
@@ -313,8 +306,6 @@ async def choose_filling(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except:
             pass
         return CHOOSING_RIBBON_COLOR_BOUQUET
-
-    return CHOOSING_FILLING
 
     return CHOOSING_FILLING
 
@@ -378,7 +369,6 @@ async def choose_set_filling(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     await query.answer()
 
-    # Удаляем сообщение с выбором наполнения
     try:
         await query.message.delete()
     except Exception as e:
@@ -396,11 +386,10 @@ async def choose_set_filling(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return CHOOSING_SET_FILLING
         context.user_data["set_filling"] = SET_FILLINGS[key]
 
-        # Отправка фото ленты для наборов
-        photo_path = "Jarvis/Photos/ribbon_overview.png"
+        # ИСПРАВЛЕНО: путь к фото — без Jarvis/
+        photo_path = "Photos/ribbon_overview.png"
         if os.path.exists(photo_path):
             with open(photo_path, "rb") as photo:
-                # ✅ ИСПРАВЛЕНО: клавиатура без лишних скобок
                 keyboard = [
                     [InlineKeyboardButton(name, callback_data=f"ribbons_{key}")]
                     for key, name in RIBBON_COLORS.items()
@@ -433,7 +422,6 @@ async def choose_ribbon_color_set(update: Update, context: ContextTypes.DEFAULT_
     query = update.callback_query
     await query.answer()
 
-    # Удаляем сообщение с выбором ленты
     try:
         await query.message.delete()
     except Exception as e:
@@ -535,7 +523,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main() -> None:
     application = Application.builder().token(BOT_TOKEN).build()
 
-    # СОЗДАЁМ ПОЛНЫЙ conv_handler (как в предыдущих версиях)
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
@@ -557,21 +544,18 @@ def main() -> None:
 
     application.add_handler(conv_handler)
 
-    # Получаем URL вебхука из переменной окружения
+    # === ЗАПУСК ТОЛЬКО WEBHOOK ===
     WEBHOOK_URL = os.getenv("WEBHOOK_URL")
     PORT = int(os.environ.get("PORT", 8000))
 
-    # Запуск ТОЛЬКО webhook
     application.run_webhook(
         listen="0.0.0.0",
         port=PORT,
         url_path=BOT_TOKEN,
         webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
     )
+    # ← НИКАКОГО run_polling() НЕТ! ←
 
-    application.add_handler(conv_handler)
-    logger.info("Бот запущен...")
-    application.run_polling()
 
 if __name__ == "__main__":
     main()
